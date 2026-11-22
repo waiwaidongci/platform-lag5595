@@ -12,6 +12,7 @@ from src.models.jobs import Run
 from src.models.source import Dataset
 from src.schemas.requests import ReviewRequest, RunRequest
 from src.services.audit import record
+from src.services.syncs import snapshot as clock_snapshot
 from src.services.validation import normalize_params
 from src.utils import views
 from src.utils.wakeup import wake
@@ -36,10 +37,16 @@ def create(body: RunRequest, db: Session = Depends(connection),
            actor: User = Depends(allow(Role.ADMIN, Role.ANALYST))):
     if not db.get(Dataset, body.dataset_id):
         raise HTTPException(404, '找不到指定的数据批次')
-    item = Run(name=body.name, dataset_id=body.dataset_id, params=normalize_params(body.params), author=actor.username)
+    # 排队瞬间快照对时记录；扫描重试沿用本运行的快照，不改换排队时选定的对时记录。
+    clock_sync = clock_snapshot(db, body.dataset_id)
+    params = normalize_params(body.params)
+    if clock_sync is not None:
+        params['clock_sync'] = clock_sync
+    item = Run(name=body.name, dataset_id=body.dataset_id, params=params, author=actor.username)
     db.add(item)
     db.flush()
-    record(db, actor.username, 'analysis.queued', item.id, dataset_id=item.dataset_id)
+    record(db, actor.username, 'analysis.queued', item.id,
+           dataset_id=item.dataset_id, clock_sync_snapshot=bool(clock_sync))
     db.commit()
     wake()
     return views.run(item, detail=True)

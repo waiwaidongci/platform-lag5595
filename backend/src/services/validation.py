@@ -52,6 +52,10 @@ def parse_rows(text):
     rows = []
     try:
         headers = reader.fieldnames or []
+        # sound_time 为后增可选列，旧模板导出的 CSV 缺列时按空值处理。
+        if 'sound_time' not in headers:
+            sound_time_index = headers.index('timestamp') + 1 if 'timestamp' in headers else len(headers)
+            headers = [*headers[:sound_time_index], 'sound_time', *headers[sound_time_index:]]
         if not required <= set(headers) or not set(headers) <= keys or len(headers) != len(set(headers)):
             raise ValueError('CSV 表头与字段说明不符，请下载模板检查列名')
         for raw in reader:

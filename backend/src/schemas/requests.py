@@ -19,6 +19,14 @@ class RunRequest(Request):
     name: str = Field(min_length=1, max_length=120)
     params: dict = Field(default_factory=dict)
 
+class TimeSyncRequest(Request):
+    endpoint: str = Field(min_length=1, max_length=10)
+    observed_at: str = Field(min_length=1, max_length=30)
+    deviation_low: float
+    deviation_high: float
+    note: str = Field(default='', max_length=300)
+    version: int | None = Field(default=None, ge=0)
+
 class ReviewRequest(Request):
     review: Review
     note: str = Field(min_length=1, max_length=500)

@@ -31,6 +31,7 @@ export async function runPage(route, refresh) {
       const item = await workspace.start(runRequest(new FormData(event.target),spec));
       location.hash = `#results/${item.id}`;
     })}, datasetField(datasets,route.id),field({key:'name',label:'运行名称',type:'string',max_length:120},`样本${spec.run}`),
+    p('提交运行时会快照该批次当前的首尾对时记录及偏差区间；后台扫描重试沿用同一快照，不会改用后来更正的对时。','subtle'),
     el('div',{class:'form-grid'},spec.params.map(param=>field(param))),el('div',{class:'actions'},submit),scheduleFields,error);
   plan.addEventListener('click',handler(plan,error,async()=>{
     if (!form.reportValidity()) return;

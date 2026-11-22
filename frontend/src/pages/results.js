@@ -31,12 +31,18 @@ export async function results(route, refresh) {
     el('select',{id:'run-picker',onChange:event=>{location.hash=`#results/${event.target.value}`;}},
       (runs.some(item=>item.id===job.id) ? runs : [job,...runs]).map(item=>el('option',{value:item.id,selected:item.id===job.id},item.name))));
   const result = job.result;
+  const retestBanner = result && el('div', {
+    class: `retest-banner ${result.retest_recommended ? 'is-retest' : 'is-hold'}`,
+    'data-testid': 'retest-banner',
+  }, el('strong', {}, result.retest_recommended ? '建议安排现场复测' : '暂不建议复测'),
+    p((result.sections || []).find(item => item.title === '复测判定')?.text || '', 'subtle'));
   const analysis = result ? el('section',{class:'analysis','data-testid':'analysis-complete'},
     el('div',{class:'result-head'},p(job.name,'eyeline'),h(2,result.headline),p(result.note,'intro-copy'),
       el('div',{class:'actions'},pill(STATUS[job.status],job.status),download,message)),
+    retestBanner,
     metrics(result.metrics),
     result.charts.map(plot),
-    (result.sections || []).map(item=>panel(item.title,p(item.text))),
+    (result.sections || []).filter(item=>item.title !== '复测判定').map(item=>panel(item.title,p(item.text))),
     result.tables.map(item=>panel(item.title,table(item.columns,item.rows,{caption:item.title}))))
     : panel(job.name,pill(STATUS[job.status],job.status),p(job.error,'feedback'),link('返回调整参数',`#run/${job.dataset_id}`,{class:'quiet'}));
   const inputs = spec.params.map(param=>el('div',{},el('dt',{},param.label),el('dd',{},value(job.params[param.key]))));

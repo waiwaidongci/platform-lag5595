@@ -1,5 +1,6 @@
 import {feedback, field} from '../components/common/fields.js';
 import {empty, panel} from '../components/common/panels.js';
+import {clockSyncPanel} from '../components/common/sync-panel.js';
 import {table} from '../components/common/table.js';
 import {handler} from '../hooks/action.js';
 import {session} from '../stores/session.js';
@@ -38,7 +39,9 @@ export async function inputs(route, refresh) {
     else location.hash = target;
   })},field({key:'batch_name',label:'批次名称',type:'string',max_length:120}),
     el('label',{class:'field',for:'source'}, el('span',{},'业务 CSV'),el('input',{id:'source',type:'file',name:'source',accept:'.csv,text/csv',required:true})), submit);
+  const syncPanel = selected ? await clockSyncPanel(selected.id, refresh) : null;
   return el('div',{class:'two-col'},el('div',{class:'wide-panel'},preview),el('aside',{class:'sidebar-panel'},
+    syncPanel,
     panel('数据导入',p('导入后保留原批次和校验指纹，可用同一份数据复跑。','subtle'),sample,upload,error),
     panel('字段说明',el('dl',{class:'dictionary'},spec.fields.map(item=>el('div',{},el('dt',{},item.label),
       el('dd',{},item.key,item.required === false ? ' · 可空' : ' · 必填',item.options ? ` · ${item.options.join(' / ')}` : '')))))));

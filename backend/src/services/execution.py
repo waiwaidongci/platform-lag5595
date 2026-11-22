@@ -8,6 +8,7 @@ from src.domain.spec import SPEC
 from src.models.jobs import Delivery, Run, Schedule
 from src.models.source import Dataset
 from src.services.audit import record
+from src.services.syncs import snapshot as clock_snapshot
 from src.utils.exports import write_report
 from src.utils.time import now
 
@@ -36,8 +37,13 @@ def materialize_due():
                 item.next_at = due + timedelta(days=1)
             else:
                 item.enabled = False
+            # 定时运行同样在排队瞬间快照对时记录，重试与后续每日运行互不串改。
+            run_params = dict(params)
+            sync_snapshot = clock_snapshot(db, dataset_id)
+            if sync_snapshot is not None:
+                run_params['clock_sync'] = sync_snapshot
             db.add(Run(dataset_id=dataset_id, schedule_id=item.id, scheduled_at=due,
-                       name=item.name, params=params, author=item.author))
+                       name=item.name, params=run_params, author=item.author))
 
 
 def claim():
@@ -63,9 +69,11 @@ def claim():
 
 def execute(lease):
     job_id, attempt, rows, params = lease
+    # clock_sync 是排队时写入的保留快照，不属于扫描参数；重试沿用同一快照。
+    clock_sync = params.get('clock_sync')
     result = export = failure = None
     try:
-        result = analyze(rows, params)
+        result = analyze(rows, params, clock_sync=clock_sync)
         export = write_report(job_id, attempt, result)
     except ValueError as error:
         failure = str(error)[:500]

@@ -10,6 +10,8 @@ export const workspace = {
   async refresh() { [this.datasets, this.runs] = await Promise.all([call('/datasets'), call('/runs')]); },
   getDataset: (id, offset = 0) => call(`/datasets/${id}?offset=${offset}`),
   getRun: id => call(`/runs/${id}`),
+  clockSyncs: id => call(`/datasets/${id}/clock-syncs`),
+  saveClockSync: (id, data) => call(`/datasets/${id}/clock-syncs`, data),
   upload: data => call('/datasets', data),
   start: data => call('/runs', data),
   review: (id, data) => call(`/runs/${id}/review`, data),
